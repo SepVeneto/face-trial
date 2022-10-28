@@ -1,3 +1,5 @@
+import faceMock from './faceMock.json'
+import glassMock from './glassMock.json'
 class Scene {
   public canvas: HTMLCanvasElement
   public ctx: CanvasRenderingContext2D
@@ -8,7 +10,7 @@ class Scene {
   }
   run() {
     this.renderer()
-    window.requestAnimationFrame(() => this.run())
+    // window.requestAnimationFrame(() => this.run())
   }
   register(obj: RigidBody) {
     obj.ctx = this.ctx
@@ -100,14 +102,50 @@ class Leg extends RigidBody {
     this.y2 += offsetY
   }
   render() {
-    this.ctx.fillStyle = this.ctx.createPattern(this.img, 'no-repeat') 
-    this.ctx.beginPath()
-    this.ctx.moveTo(this.x1, this.y1)
-    this.ctx.lineTo(this.x2, this.y2)
-    this.ctx.lineTo(this.x3, this.y3)
-    this.ctx.lineTo(this.x4, this.y4)
-    this.ctx.closePath()
-    this.ctx.fill()
+    const glassLength = faceMock.glass_length
+    /** TODO */
+    const C = 0.12 * glassLength
+    /** TODO */
+    const Z = {x: 0, y: 0}
+
+    const scale = glassLength / this.img.width
+    /** TODO */
+    const M = scale * glassMock.lower_left_y
+    /** TODO */
+    const k = scale * glassMock.upper_left_y
+    const offsetY = M - k
+    const legY1 = glassMock.leg_y1
+    const legY2 = glassMock.leg_y2
+    let offsetLegY = legY2 - legY1
+
+    if (offsetLegY === 0) {
+      offsetLegY = offsetY
+    }
+
+    /** TODO */
+    const F = offsetY * this.img.height / offsetLegY
+    const H = k + F / 2 - legY1 / offsetLegY * offsetY
+
+    const j = -8.502996764613137
+    const d = 2
+    const K = 11.187222723131262
+    const N = 130.6225
+    const E = 206.05291666666668
+    const U = 2.8885020806637596
+    this.ctx.save()
+    this.ctx.translate(N * d, E * d)
+    this.ctx.rotate(U)
+    this.ctx.drawImage(this.img, 0, -j / 2 * d, K * d, j * d)
+    this.ctx.restore()
+
+    // this.ctx.fillStyle = this.ctx.createPattern(this.img, 'no-repeat') 
+    // this.ctx.beginPath()
+    // this.ctx.moveTo(this.x1, this.y1)
+    // this.ctx.lineTo(this.x2, this.y2)
+    // this.ctx.lineTo(this.x3, this.y3)
+    // this.ctx.lineTo(this.x4, this.y4)
+    // this.ctx.closePath()
+    // this.ctx.fill()
   }
 }
 async function init() {
@@ -118,20 +156,20 @@ async function init() {
   bg.x = 0
   bg.y = 0
   await bg.load('/assets/5.jpg')
-  scene.register(bg)
+  // scene.register(bg)
   const glass = new Glass()
   await glass.load('/assets/glass.png')
   glass.x = 0
   glass.y = 0
   glass.width = 60
   glass.height = 23.5
-  scene.register(glass)
+  // scene.register(glass)
 
   const leftLeg = new Leg()
   const rightLeg = new Leg()
 
   glass.bindLeft(leftLeg)
-  glass.bindRight(rightLeg)
+  // glass.bindRight(rightLeg)
 
   await leftLeg.load('/assets/leg.png')
   await rightLeg.load('/assets/leg.png')
