@@ -1,4 +1,4 @@
-{
+export default {
   "id": 385320,
   "color": "C15",
   "goods_id": 357493,

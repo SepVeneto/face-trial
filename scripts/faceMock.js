@@ -1,4 +1,4 @@
-{
+export default {
   "success": 1,
   "rotate": -0.1004361120488509,
   "glass_length": 141.8083888231758,

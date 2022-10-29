@@ -1,12 +1,23 @@
-import faceMock from './faceMock.json';
-import glassMock from './glassMock.json';
+import faceMock from './faceMock.js';
+import glassMock from './glassMock.js';
+const MAGIC_HEIGHT = 0.12;
 class Scene {
     canvas;
     ctx;
     objs = [];
     constructor() {
+        const dpi = window.devicePixelRatio;
         this.canvas = document.querySelector('#canvas');
         this.ctx = this.canvas.getContext('2d');
+        const rect = this.canvas.getBoundingClientRect();
+        this.canvas.width = rect.width * dpi;
+        this.canvas.height = rect.height * dpi;
+        // this.ctx.scale(1 / dpi, 1 / dpi)
+    }
+    /** 推测是重新获取眼镜数据的，暂时当作返回false */
+    static t() {
+        console.log('not visible');
+        return false;
     }
     run() {
         this.renderer();
@@ -51,33 +62,42 @@ class Glass extends RigidBody {
     constructor() {
         super();
     }
-    bindLeft(leg) {
-        this.leftSlot = leg;
-        this.leftSlot.x1 = this.x;
-        this.leftSlot.y1 = this.y + this.linkTopY;
-        this.leftSlot.x2 = this.x;
-        this.leftSlot.y2 = this.y + this.linkBottomY;
-        this.leftSlot.x3 = this.x - this.leftSlot.width;
-        this.leftSlot.y3 = this.y + this.endTopY;
-        this.leftSlot.x4 = this.x - this.leftSlot.width;
-        this.leftSlot.y4 = this.y + this.endBottomY;
+    triggerBox(touch) {
+        const x = touch.pageX;
+        let y = touch.pageY;
+        if (Scene.t()) {
+            return false;
+        }
+        const glassLength = faceMock.glass_length;
+        const l = 0.12 * glassLength;
+        const pos = objOffset.g;
+        const d = this.img.height * glassLength / this.img.width || glassLength / 2;
+        const f = faceMock.x_center + pos.x - glassLength / 2;
+        const h = faceMock.x_center + pos.x + glassLength / 2;
+        const p = faceMock.y_center + pos.y - l;
+        const g = faceMock.y_center + pos.y - l + d;
+        /** header-height */
+        // y -= 45
+        /** 某个offset */
+        const offset = 20;
+        return (x > f - offset) && (x < h + offset) && (y > p - offset) && (y < g + offset);
     }
-    bindRight(leg) {
-        this.rightSlot = leg;
-        this.rightSlot.x1 = this.x;
-        this.rightSlot.y1 = this.y + this.linkTopY;
-        this.rightSlot.x2 = this.x;
-        this.rightSlot.y2 = this.y + this.linkBottomY;
-        this.rightSlot.x3 = this.x + this.rightSlot.width;
-        this.rightSlot.y3 = this.y + this.endTopY;
-        this.rightSlot.x4 = this.x + this.rightSlot.width;
-        this.rightSlot.y4 = this.y + this.endBottomY;
-    }
-    update(offsetX, offsetY) {
-        this.x += offsetX;
-        this.y += offsetY;
-        this.leftSlot.update(offsetX, offsetY);
-        this.rightSlot.update(offsetX, offsetY);
+    render() {
+        const dpi = window.devicePixelRatio;
+        const glassLength = faceMock.glass_length;
+        const offset = objOffset.g;
+        const centerX = glassLength / 2;
+        const centerY = MAGIC_HEIGHT * glassLength;
+        const faceCenterX = faceMock.x_center;
+        const faceCenterY = faceMock.y_center;
+        const faceRotate = faceMock.rotate;
+        const scale = glassLength / this.img.width;
+        const glassHeight = this.img.height * scale;
+        this.ctx.save();
+        this.ctx.translate((faceCenterX + offset.x) * dpi, (faceCenterY + offset.y) * dpi);
+        this.ctx.rotate(faceRotate);
+        this.ctx.drawImage(this.img, -centerX * dpi, -centerY * dpi, glassLength * dpi, glassHeight * dpi);
+        this.ctx.restore();
     }
 }
 class Leg extends RigidBody {
@@ -99,91 +119,152 @@ class Leg extends RigidBody {
         this.y2 += offsetY;
     }
     render() {
+        const dpi = window.devicePixelRatio;
         const glassLength = faceMock.glass_length;
-        /** TODO */
-        const C = 0.12 * glassLength;
-        /** TODO */
-        const Z = { x: 0, y: 0 };
+        const glassCenterY = MAGIC_HEIGHT * glassLength;
+        const offset = objOffset.g;
+        // 镜框与镜腿的原始图片的尺寸需要1：1对应
         const scale = glassLength / this.img.width;
-        /** TODO */
-        const M = scale * glassMock.lower_left_y;
-        /** TODO */
-        const k = scale * glassMock.upper_left_y;
-        const offsetY = M - k;
+        const realGlassLowerLeftY = scale * glassMock.lower_left_y;
+        const realGlassUpperLeftY = scale * glassMock.upper_left_y;
+        // 实际镜框插槽高度
+        const realGlassSlotHeight = realGlassLowerLeftY - realGlassUpperLeftY;
+        /** ? */
         const legY1 = glassMock.leg_y1;
         const legY2 = glassMock.leg_y2;
         let offsetLegY = legY2 - legY1;
         if (offsetLegY === 0) {
-            offsetLegY = offsetY;
+            offsetLegY = realGlassSlotHeight;
         }
         /** TODO */
-        const F = offsetY * this.img.height / offsetLegY;
-        const H = k + F / 2 - legY1 / offsetLegY * offsetY;
-        const j = -8.502996764613137;
-        const d = 2;
-        const K = 11.187222723131262;
-        const N = 130.6225;
-        const E = 206.05291666666668;
-        const U = 2.8885020806637596;
+        const F = realGlassSlotHeight * this.img.height / offsetLegY;
+        const H = realGlassUpperLeftY + F / 2 - legY1 / offsetLegY * realGlassSlotHeight;
+        const glassCenterX = glassLength / 2;
+        const Q = glassCenterY - H;
+        /** someone rotate */
+        const I = Math.atan(Q / glassCenterX);
+        const $ = Math.sqrt(glassCenterX * glassCenterX + Q * Q);
+        /** left leg */
+        // 所以这里应该是用来计算补偿距离的
+        const W = $ * Math.cos(I + faceMock.rotate);
+        const R = $ * Math.sin(I + faceMock.rotate);
+        const N = -W + faceMock.x_center + offset.x;
+        const E = -R + faceMock.y_center + offset.y;
+        // 减的这个N E应该是镜腿末端对于移动距离的补偿
+        // 以此来达到末端不动的效果
+        const O = faceMock.x_face_left - N;
+        const A = faceMock.y_face_left - E;
+        const K = Math.sqrt(O * O + A * A);
+        let U = Math.atan(A / O);
+        if (O < 0) {
+            U += Math.PI;
+        }
         this.ctx.save();
-        this.ctx.translate(N * d, E * d);
+        this.ctx.translate(N * dpi, E * dpi);
         this.ctx.rotate(U);
-        this.ctx.drawImage(this.img, 0, -j / 2 * d, K * d, j * d);
+        this.n(-faceMock.rotate + U);
+        if (O < 0) {
+            this.ctx.scale(1, -1);
+        }
+        const j = F * Math.cos(-faceMock.rotate + U);
+        this.ctx.drawImage(this.img, 0, -j / 2 * dpi, K * dpi, j * dpi);
         this.ctx.restore();
-        // this.ctx.fillStyle = this.ctx.createPattern(this.img, 'no-repeat') 
-        // this.ctx.beginPath()
-        // this.ctx.moveTo(this.x1, this.y1)
-        // this.ctx.lineTo(this.x2, this.y2)
-        // this.ctx.lineTo(this.x3, this.y3)
-        // this.ctx.lineTo(this.x4, this.y4)
-        // this.ctx.closePath()
-        // this.ctx.fill()
+        /** right leg */
+        const z = $ * Math.cos(-I + faceMock.rotate);
+        const q = $ * Math.sin(-I + faceMock.rotate);
+        const V = z + faceMock.x_center + offset.x;
+        const ee = q + faceMock.y_center + offset.y;
+        const te = faceMock.x_face_right - V;
+        const ie = faceMock.y_face_right - ee;
+        const ne = Math.sqrt(te * te + ie * ie);
+        let re = Math.atan(ie / te);
+        if (te < 0) {
+            re += Math.PI;
+        }
+        this.ctx.save();
+        this.ctx.translate(V * dpi, ee * dpi);
+        this.ctx.rotate(re);
+        this.n(-faceMock.rotate + re);
+        if (te < 0) {
+            this.ctx.scale(1, -1);
+        }
+        const oe = F * Math.cos(-faceMock.rotate + re);
+        this.ctx.drawImage(this.img, 0, -oe / 2 * dpi, ne * dpi, oe * dpi);
+        this.ctx.restore();
+    }
+    n(rotate) {
+        this.ctx.transform(1, 0, Math.tan(rotate), 1, 0, 0);
     }
 }
 async function init() {
     const scene = new Scene();
     const bg = new RigidBody();
-    bg.width = 300 * 0.66;
-    bg.height = 300;
+    bg.width = scene.canvas.width;
+    bg.height = scene.canvas.height;
     bg.x = 0;
     bg.y = 0;
-    await bg.load('/assets/5.jpg');
+    // await bg.load('/assets/5.jpg')
     // scene.register(bg)
     const glass = new Glass();
     await glass.load('/assets/glass.png');
-    glass.x = 0;
-    glass.y = 0;
-    glass.width = 60;
-    glass.height = 23.5;
-    // scene.register(glass)
+    // glass.x = 0
+    // glass.y = 0
+    // glass.width = 60
+    // glass.height = 23.5
+    scene.register(glass);
     const leftLeg = new Leg();
-    const rightLeg = new Leg();
-    glass.bindLeft(leftLeg);
+    // const rightLeg = new Leg()
+    // glass.bindLeft(leftLeg)
     // glass.bindRight(rightLeg)
     await leftLeg.load('/assets/leg.png');
-    await rightLeg.load('/assets/leg.png');
+    // await rightLeg.load('/assets/leg.png')
     scene.register(leftLeg);
-    scene.register(rightLeg);
+    // scene.register(rightLeg)
     scene.run();
     const canvas = scene.canvas;
-    let dragging;
-    canvas.addEventListener('mousedown', (event) => {
-        dragging = true;
-        canvas.addEventListener('mousemove', (e) => {
-            if (dragging) {
-                glass.update(e.clientX - event.clientX, e.clientY - event.clientY);
+    let target = null;
+    let currentPos = { x: 0, y: 0 };
+    let currentOffset = objOffset;
+    canvas.addEventListener('touchstart', (evt) => {
+        target = null;
+        const touch = evt.changedTouches[0];
+        if (!Scene.t() && glass.triggerBox(touch)) {
+            target = 'g';
+            /** 操作leg的判断 */
+            // if (Scene.t()) {
+            //   target = 
+            // }
+            console.log('selected: ', target);
+            if (target) {
+                evt.preventDefault();
+                evt.stopPropagation();
+                currentPos = {
+                    x: touch.pageX,
+                    y: touch.pageY
+                };
+                currentOffset = { ...objOffset };
             }
-        });
-        canvas.addEventListener('mouseup', () => {
-            dragging = false;
+            else {
+            }
+        }
+        canvas.addEventListener('touchmove', (evt) => {
+            if (currentPos.x !== 0 || currentPos.y !== 0) {
+                evt.preventDefault();
+                evt.stopPropagation();
+                const touch = evt.changedTouches[0];
+                const offsetPos = {
+                    x: touch.pageX - currentPos.x,
+                    y: touch.pageY - currentPos.y
+                };
+                const limit = target === 'g' ? 80 : 10;
+                const x = ensureRange(currentOffset[target].x + offsetPos.x, -limit, limit);
+                const y = ensureRange(currentOffset[target].y + offsetPos.y, -limit, limit);
+                objOffset[target] = { x, y };
+                scene.run();
+            }
         });
     });
 }
-// async function init() {
-//   let dragging = false
-//   const glass = await loadImage('/assets/glass.png')
-//   const img = await loadImage('/assets/5.jpg')
-// }
 function loadImage(url) {
     return new Promise(resolve => {
         const img = document.createElement('img');
@@ -194,4 +275,12 @@ function loadImage(url) {
         };
     });
 }
+function ensureRange(val, min, max) {
+    return Math.max(Math.min(val, max), min);
+}
+const objOffset = {
+    g: { x: 0, y: 0 },
+    l: { x: 0, y: 0 },
+    r: { x: 0, y: 0 },
+};
 init();
