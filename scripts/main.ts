@@ -130,24 +130,24 @@ class Leg extends RigidBody {
     const glassCenterY = MAGIC_HEIGHT * glassLength
     const offset = objOffset.g
 
-    // 镜框与镜腿的原始图片的尺寸需要1：1对应
+    // 计算镜框上插槽的实际高度
     const scale = glassLength / this.img.width
     const realGlassLowerLeftY = scale * glassMock.lower_left_y
     const realGlassUpperLeftY = scale * glassMock.upper_left_y
-    // 实际镜框插槽高度
     const realGlassSlotHeight = realGlassLowerLeftY  - realGlassUpperLeftY 
-    /** ? */
+    // 计算镜腿的高度
     const legY1 = glassMock.leg_y1
     const legY2 = glassMock.leg_y2
-    let offsetLegY = legY2 - legY1
+    let legHeight = legY2 - legY1
 
-    if (offsetLegY === 0) {
-      offsetLegY = realGlassSlotHeight
+    // 优先使用镜腿的高度
+    if (legHeight === 0) {
+      legHeight = realGlassSlotHeight
     }
 
     /** TODO */
-    const F = realGlassSlotHeight * this.img.height / offsetLegY
-    const H = realGlassUpperLeftY  + F / 2 - legY1 / offsetLegY * realGlassSlotHeight
+    const F = realGlassSlotHeight * this.img.height / legHeight
+    const H = realGlassUpperLeftY  + F / 2 - legY1 / legHeight * realGlassSlotHeight
     const glassCenterX = glassLength / 2
     const Q = glassCenterY - H
     /** someone rotate */
