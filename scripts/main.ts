@@ -229,11 +229,11 @@ async function init(img: string) {
   const faceData = await initFace(`/assets/${img}`)
   const scene = new Scene()
   const bg = new RigidBody()
-  bg.width = scene.canvas.width
-  bg.height = scene.canvas.height
   bg.x = 0
   bg.y = 0
   await bg.load(`/assets/${img}`)
+  bg.width = 375 * 2
+  bg.height = bg.width * bg.img.height / bg.img.width
   scene.register(bg)
   const glass = new Glass(faceData.faceWidth, faceData.faceCenterX, faceData.faceCenterY, faceData.rotate)
   await glass.load('/assets/glass.png')
@@ -326,6 +326,10 @@ const objOffset = {
   r: { x: 0, y: 0 },
 }
 
-function handleSelect(img: string) {
-  init(img)
+function handleSelect(evt: MouseEvent) {
+  init(evt.target.dataset.img)
 }
+
+Array.from(document.querySelectorAll('button')).map(node => {
+  node.addEventListener('click', handleSelect)
+})

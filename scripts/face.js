@@ -6,10 +6,11 @@ export async function init(faceUrl) {
     await faceapi.nets.tinyFaceDetector.load('/');
     await faceapi.loadFaceLandmarkModel('/');
     const img = await loadImage(faceUrl);
-    const inputSize = 512;
+    const inputSize = 608;
     const scoreThreshold = 0.5;
     const options = new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold });
     const result = await faceapi.detectAllFaces(img, options).withFaceLandmarks();
+    console.log(result);
     return parseFace(result[0]);
 }
 function parseFace(data) {
