@@ -1,5 +1,6 @@
-import faceMock from './faceMock.js';
+// import faceMock from './faceMock.js'
 import glassMock from './glassMock.js';
+import { init as initFace } from './face.js';
 const MAGIC_HEIGHT = 0.12;
 class Scene {
     canvas;
@@ -59,8 +60,15 @@ class Glass extends RigidBody {
     endBottomY = 34;
     leftSlot;
     rightSlot;
-    constructor() {
+    centerX;
+    centerY;
+    rotate;
+    constructor(width, cx, cy, rotate) {
         super();
+        this.width = width;
+        this.centerX = cx;
+        this.centerY = cy;
+        this.rotate = rotate;
     }
     triggerBox(touch) {
         const x = touch.pageX;
@@ -68,14 +76,14 @@ class Glass extends RigidBody {
         if (Scene.t()) {
             return false;
         }
-        const glassLength = faceMock.glass_length;
+        const glassLength = this.width;
         const l = 0.12 * glassLength;
         const pos = objOffset.g;
         const d = this.img.height * glassLength / this.img.width || glassLength / 2;
-        const f = faceMock.x_center + pos.x - glassLength / 2;
-        const h = faceMock.x_center + pos.x + glassLength / 2;
-        const p = faceMock.y_center + pos.y - l;
-        const g = faceMock.y_center + pos.y - l + d;
+        const f = this.centerX + pos.x - glassLength / 2;
+        const h = this.centerX + pos.x + glassLength / 2;
+        const p = this.centerY + pos.y - l;
+        const g = this.centerY + pos.y - l + d;
         /** header-height */
         // y -= 45
         /** 某个offset */
@@ -84,13 +92,13 @@ class Glass extends RigidBody {
     }
     render() {
         const dpi = window.devicePixelRatio;
-        const glassLength = faceMock.glass_length;
+        const glassLength = this.width;
         const offset = objOffset.g;
         const centerX = glassLength / 2;
         const centerY = MAGIC_HEIGHT * glassLength;
-        const faceCenterX = faceMock.x_center;
-        const faceCenterY = faceMock.y_center;
-        const faceRotate = faceMock.rotate;
+        const faceCenterX = this.centerX;
+        const faceCenterY = this.centerY;
+        const faceRotate = this.rotate;
         const scale = glassLength / this.img.width;
         const glassHeight = this.img.height * scale;
         this.ctx.save();
@@ -109,8 +117,10 @@ class Leg extends RigidBody {
     y3;
     x4;
     y4;
-    constructor() {
+    faceData;
+    constructor(data) {
         super();
+        this.faceData = data;
     }
     update(offsetX, offsetY) {
         this.x1 += offsetX;
@@ -120,7 +130,7 @@ class Leg extends RigidBody {
     }
     render() {
         const dpi = window.devicePixelRatio;
-        const glassLength = faceMock.glass_length;
+        const glassLength = this.faceData.faceWidth;
         const glassCenterY = MAGIC_HEIGHT * glassLength;
         const offset = objOffset.g;
         // 计算镜框上插槽的实际高度
@@ -137,8 +147,10 @@ class Leg extends RigidBody {
             legHeight = realGlassSlotHeight;
         }
         /** TODO */
-        const F = realGlassSlotHeight * this.img.height / legHeight;
-        const H = realGlassUpperLeftY + F / 2 - legY1 / legHeight * realGlassSlotHeight;
+        // 镜腿图片的实际高度
+        const imgHeight = realGlassSlotHeight * this.img.height / legHeight;
+        // 
+        const H = realGlassUpperLeftY + imgHeight / 2 - legY1 / legHeight * realGlassSlotHeight;
         const glassCenterX = glassLength / 2;
         const Q = glassCenterY - H;
         /** someone rotate */
@@ -146,14 +158,16 @@ class Leg extends RigidBody {
         const $ = Math.sqrt(glassCenterX * glassCenterX + Q * Q);
         /** left leg */
         // 所以这里应该是用来计算补偿距离的
-        const W = $ * Math.cos(I + faceMock.rotate);
-        const R = $ * Math.sin(I + faceMock.rotate);
-        const N = -W + faceMock.x_center + offset.x;
-        const E = -R + faceMock.y_center + offset.y;
+        const W = $ * Math.cos(I + this.faceData.rotate);
+        const R = $ * Math.sin(I + this.faceData.rotate);
+        const N = -W + this.faceData.faceCenterX + offset.x;
+        const E = -R + this.faceData.faceCenterY + offset.y;
         // 减的这个N E应该是镜腿末端对于移动距离的补偿
         // 以此来达到末端不动的效果
-        const O = faceMock.x_face_left - N;
-        const A = faceMock.y_face_left - E;
+        // console.log(this.faceData.faceLefX, N)
+        // console.log(this.faceData.faceLeftY, E)
+        const O = this.faceData.faceLeftX - N;
+        const A = this.faceData.faceLeftY - E;
         const K = Math.sqrt(O * O + A * A);
         let U = Math.atan(A / O);
         if (O < 0) {
@@ -162,20 +176,20 @@ class Leg extends RigidBody {
         this.ctx.save();
         this.ctx.translate(N * dpi, E * dpi);
         this.ctx.rotate(U);
-        this.n(-faceMock.rotate + U);
+        this.n(-this.faceData.rotate + U);
         if (O < 0) {
             this.ctx.scale(1, -1);
         }
-        const j = F * Math.cos(-faceMock.rotate + U);
+        const j = imgHeight * Math.cos(-this.faceData.rotate + U);
         this.ctx.drawImage(this.img, 0, -j / 2 * dpi, K * dpi, j * dpi);
         this.ctx.restore();
         /** right leg */
-        const z = $ * Math.cos(-I + faceMock.rotate);
-        const q = $ * Math.sin(-I + faceMock.rotate);
-        const V = z + faceMock.x_center + offset.x;
-        const ee = q + faceMock.y_center + offset.y;
-        const te = faceMock.x_face_right - V;
-        const ie = faceMock.y_face_right - ee;
+        const z = $ * Math.cos(-I + this.faceData.rotate);
+        const q = $ * Math.sin(-I + this.faceData.rotate);
+        const V = z + this.faceData.faceCenterX + offset.x;
+        const ee = q + this.faceData.faceCenterY + offset.y;
+        const te = this.faceData.faceRightX - V;
+        const ie = this.faceData.faceRightY - ee;
         const ne = Math.sqrt(te * te + ie * ie);
         let re = Math.atan(ie / te);
         if (te < 0) {
@@ -184,11 +198,11 @@ class Leg extends RigidBody {
         this.ctx.save();
         this.ctx.translate(V * dpi, ee * dpi);
         this.ctx.rotate(re);
-        this.n(-faceMock.rotate + re);
+        this.n(-this.faceData.rotate + re);
         if (te < 0) {
             this.ctx.scale(1, -1);
         }
-        const oe = F * Math.cos(-faceMock.rotate + re);
+        const oe = imgHeight * Math.cos(-this.faceData.rotate + re);
         this.ctx.drawImage(this.img, 0, -oe / 2 * dpi, ne * dpi, oe * dpi);
         this.ctx.restore();
     }
@@ -197,22 +211,23 @@ class Leg extends RigidBody {
     }
 }
 async function init() {
+    const faceData = await initFace('/assets/5.jpg');
     const scene = new Scene();
     const bg = new RigidBody();
     bg.width = scene.canvas.width;
     bg.height = scene.canvas.height;
     bg.x = 0;
     bg.y = 0;
-    // await bg.load('/assets/5.jpg')
-    // scene.register(bg)
-    const glass = new Glass();
+    await bg.load('/assets/5.jpg');
+    scene.register(bg);
+    const glass = new Glass(faceData.faceWidth, faceData.faceCenterX, faceData.faceCenterY, faceData.rotate);
     await glass.load('/assets/glass.png');
     // glass.x = 0
     // glass.y = 0
     // glass.width = 60
     // glass.height = 23.5
     scene.register(glass);
-    const leftLeg = new Leg();
+    const leftLeg = new Leg(faceData);
     // const rightLeg = new Leg()
     // glass.bindLeft(leftLeg)
     // glass.bindRight(rightLeg)
@@ -265,7 +280,7 @@ async function init() {
         });
     });
 }
-function loadImage(url) {
+export function loadImage(url) {
     return new Promise(resolve => {
         const img = document.createElement('img');
         img.src = url;
