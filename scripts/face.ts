@@ -41,3 +41,12 @@ function parseFace(data: FaceLandmarks) {
     faceRightY: standardRight.y * scale,
   }
 }
+
+export async function faceStream(videoEl: Element) {
+  const inputSize = 224
+  const scoreThreshold = 0.5
+  const ts = Date.now()
+  const options = new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold })
+  const result = await faceapi.detectSingleFace(videoEl, options).withFaceLandmarks()
+  console.log(result)
+}

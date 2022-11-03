@@ -1,6 +1,6 @@
 // import faceMock from './faceMock.js'
 import glassMock from './glassMock.js';
-import { init as initFace } from './face.js';
+import { faceStream, init as initFace } from './face.js';
 const MAGIC_HEIGHT = 0.12;
 class Scene {
     canvas;
@@ -299,7 +299,23 @@ const objOffset = {
     r: { x: 0, y: 0 },
 };
 function handleSelect(evt) {
-    init(evt.target.dataset.img);
+    const { img } = evt.target.dataset;
+    if (img === 'video') {
+        initStream();
+    }
+    else {
+        init(img);
+    }
+}
+async function initStream() {
+    const node = document.querySelector('video');
+    console.log(node);
+    node.addEventListener('onloadedmetadata', () => {
+        console.log('trigger');
+        faceStream(node);
+    });
+    const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+    node.srcObject = stream;
 }
 Array.from(document.querySelectorAll('button')).map(node => {
     node.addEventListener('click', handleSelect);
