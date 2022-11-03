@@ -225,15 +225,15 @@ class Leg extends RigidBody {
   }
 
 }
-async function init() {
-  const faceData = await initFace('/assets/5.jpg')
+async function init(img: string) {
+  const faceData = await initFace(`/assets/${img}`)
   const scene = new Scene()
   const bg = new RigidBody()
   bg.width = scene.canvas.width
   bg.height = scene.canvas.height
   bg.x = 0
   bg.y = 0
-  await bg.load('/assets/5.jpg')
+  await bg.load(`/assets/${img}`)
   scene.register(bg)
   const glass = new Glass(faceData.faceWidth, faceData.faceCenterX, faceData.faceCenterY, faceData.rotate)
   await glass.load('/assets/glass.png')
@@ -326,4 +326,6 @@ const objOffset = {
   r: { x: 0, y: 0 },
 }
 
-init()
+function handleSelect(img: string) {
+  init(img)
+}
