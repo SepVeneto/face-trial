@@ -1,6 +1,6 @@
 // import * as faceapi from '../node_modules/face-api.js/build/es6/index.js'
 // import * as faceapi from 'face-api.js'
-import { loadImage } from './main.js'
+import { loadImage, renderer } from './main.js'
 const VIEWPORT_WIDTH = 375
 
 type FaceLandmarks = faceapi.WithFaceLandmarks<{ detection: faceapi.FaceDetection }, faceapi.FaceLandmarks68>
@@ -15,7 +15,6 @@ export async function init(faceUrl: string) {
   const options = new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold })
 
   const result = await faceapi.detectAllFaces(img, options).withFaceLandmarks()
-  console.log(result)
   return parseFace(result[0])
 }
 
@@ -43,10 +42,13 @@ function parseFace(data: FaceLandmarks) {
 }
 
 export async function faceStream(videoEl: Element) {
+  await faceapi.nets.tinyFaceDetector.load('/')
+  await faceapi.loadFaceLandmarkModel('/')
   const inputSize = 224
   const scoreThreshold = 0.5
   const ts = Date.now()
   const options = new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold })
   const result = await faceapi.detectSingleFace(videoEl, options).withFaceLandmarks()
-  console.log(result)
+  result && renderer(parseFace(result))
+  setTimeout(() => faceStream(videoEl))
 }

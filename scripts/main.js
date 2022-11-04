@@ -1,6 +1,8 @@
 // import faceMock from './faceMock.js'
 import glassMock from './glassMock.js';
 import { faceStream, init as initFace } from './face.js';
+window.onPlay = faceStream;
+let loading = false;
 const MAGIC_HEIGHT = 0.12;
 class Scene {
     canvas;
@@ -27,6 +29,10 @@ class Scene {
     register(obj) {
         obj.ctx = this.ctx;
         this.objs.push(obj);
+    }
+    clear() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.objs.length = 0;
     }
     renderer() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -70,7 +76,14 @@ class Glass extends RigidBody {
         this.centerY = cy;
         this.rotate = rotate;
     }
+    update(faceData) {
+        this.width = faceData.faceWidth;
+        this.centerX = faceData.faceCenterX;
+        this.centerY = faceData.faceCenterY;
+        this.rotate = faceData.rotate;
+    }
     triggerBox(touch) {
+        console.log(touch);
         const x = touch.pageX;
         let y = touch.pageY;
         if (Scene.t()) {
@@ -122,11 +135,8 @@ class Leg extends RigidBody {
         super();
         this.faceData = data;
     }
-    update(offsetX, offsetY) {
-        this.x1 += offsetX;
-        this.y1 += offsetY;
-        this.x2 += offsetX;
-        this.y2 += offsetY;
+    update(faceData) {
+        this.faceData = faceData;
     }
     render() {
         const dpi = window.devicePixelRatio;
@@ -210,32 +220,16 @@ class Leg extends RigidBody {
         this.ctx.transform(1, 0, Math.tan(rotate), 1, 0, 0);
     }
 }
-async function init(img) {
-    const faceData = await initFace(`/assets/${img}`);
-    const scene = new Scene();
-    const bg = new RigidBody();
-    bg.x = 0;
-    bg.y = 0;
-    await bg.load(`/assets/${img}`);
-    bg.width = 375 * 2;
-    bg.height = bg.width * bg.img.height / bg.img.width;
-    scene.register(bg);
-    const glass = new Glass(faceData.faceWidth, faceData.faceCenterX, faceData.faceCenterY, faceData.rotate);
-    await glass.load('/assets/glass.png');
-    // glass.x = 0
-    // glass.y = 0
-    // glass.width = 60
-    // glass.height = 23.5
-    scene.register(glass);
-    const leftLeg = new Leg(faceData);
-    // const rightLeg = new Leg()
-    // glass.bindLeft(leftLeg)
-    // glass.bindRight(rightLeg)
-    await leftLeg.load('/assets/leg.png');
-    // await rightLeg.load('/assets/leg.png')
-    scene.register(leftLeg);
-    // scene.register(rightLeg)
-    scene.run();
+let scene = null;
+let glass = null;
+let leftLeg = null;
+const objOffset = {
+    g: { x: 0, y: 0 },
+    l: { x: 0, y: 0 },
+    r: { x: 0, y: 0 },
+};
+window.onload = () => {
+    scene = new Scene();
     const canvas = scene.canvas;
     let target = null;
     let currentPos = { x: 0, y: 0 };
@@ -279,6 +273,84 @@ async function init(img) {
             }
         });
     });
+    canvas.addEventListener('mousedown', (evt) => {
+        target = null;
+        const touch = evt;
+        if (!Scene.t() && glass.triggerBox(touch)) {
+            target = 'g';
+            /** 操作leg的判断 */
+            // if (Scene.t()) {
+            //   target = 
+            // }
+            console.log('selected: ', target);
+            if (target) {
+                evt.preventDefault();
+                evt.stopPropagation();
+                currentPos = {
+                    x: touch.pageX,
+                    y: touch.pageY
+                };
+                currentOffset = { ...objOffset };
+            }
+            else {
+            }
+        }
+        canvas.addEventListener('mousemove', handleMove);
+        function handleMove(evt) {
+            if (currentPos.x !== 0 || currentPos.y !== 0) {
+                evt.preventDefault();
+                evt.stopPropagation();
+                const touch = evt;
+                const offsetPos = {
+                    x: touch.pageX - currentPos.x,
+                    y: touch.pageY - currentPos.y
+                };
+                const limit = target === 'g' ? 80 : 10;
+                const x = ensureRange(currentOffset[target].x + offsetPos.x, -limit, limit);
+                const y = ensureRange(currentOffset[target].y + offsetPos.y, -limit, limit);
+                objOffset[target] = { x, y };
+                scene.run();
+            }
+        }
+        canvas.addEventListener('mouseup', () => {
+            canvas.removeEventListener('mousemove', handleMove);
+        });
+    });
+    document.querySelector('button').click();
+};
+export function renderer(face) {
+    glass.update(face);
+    leftLeg.update(face);
+    scene.run();
+}
+export async function init(img, face) {
+    let faceData = face;
+    if (img) {
+        faceData = await initFace(`/assets/${img}`);
+        const bg = new RigidBody();
+        bg.x = 0;
+        bg.y = 0;
+        await bg.load(`/assets/${img}`);
+        bg.width = 375;
+        bg.height = bg.width * bg.img.height / bg.img.width;
+        scene.register(bg);
+    }
+    glass = new Glass(faceData.faceWidth, faceData.faceCenterX, faceData.faceCenterY, faceData.rotate);
+    await glass.load('/assets/glass.png');
+    // glass.x = 0
+    // glass.y = 0
+    // glass.width = 60
+    // glass.height = 23.5
+    scene.register(glass);
+    leftLeg = new Leg(faceData);
+    // const rightLeg = new Leg()
+    // glass.bindLeft(leftLeg)
+    // glass.bindRight(rightLeg)
+    await leftLeg.load('/assets/leg.png');
+    // await rightLeg.load('/assets/leg.png')
+    scene.register(leftLeg);
+    // scene.register(rightLeg)
+    scene.run();
 }
 export function loadImage(url) {
     return new Promise(resolve => {
@@ -293,28 +365,24 @@ export function loadImage(url) {
 function ensureRange(val, min, max) {
     return Math.max(Math.min(val, max), min);
 }
-const objOffset = {
-    g: { x: 0, y: 0 },
-    l: { x: 0, y: 0 },
-    r: { x: 0, y: 0 },
-};
-function handleSelect(evt) {
+async function handleSelect(evt) {
+    document.querySelector('#loading').innerHTML = '识别中';
+    scene.clear();
     const { img } = evt.target.dataset;
     if (img === 'video') {
+        scene.register(glass);
+        scene.register(leftLeg);
         initStream();
+        document.querySelector('#loading').innerHTML = '';
     }
     else {
-        init(img);
+        await init(img);
+        document.querySelector('#loading').innerHTML = '';
     }
 }
 async function initStream() {
     const node = document.querySelector('video');
-    console.log(node);
-    node.addEventListener('onloadedmetadata', () => {
-        console.log('trigger');
-        faceStream(node);
-    });
-    const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 375, height: 580 } });
     node.srcObject = stream;
 }
 Array.from(document.querySelectorAll('button')).map(node => {

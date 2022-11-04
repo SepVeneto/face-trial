@@ -8,17 +8,25 @@
   <script src="./scripts/face-api.js"></script>
   <script src="./scripts/main.js" type="module"></script>
 </head>
-<body style="height: 100vh;">
+<body style="height: 100vh; position: relative;">
+  <video
+    style="width: 375px; height: 580px;"
+    onloadedmetadata="onPlay(this)"
+    id="video"
+    autoplay
+    muted
+    playsinline
+  ></video>
   <canvas
-    style="width: 100vw; height: auto;"
+    style="width: 375px; height: 580px; position: absolute; top: 0; left: 0;"
     id="canvas"
   ></canvas>
-  <video id="video" autoplay muted playsinline></video>
   <div style="height: 50px;">
     <button data-img="4.jpg">人像1</button>
     <button data-img="5.jpg">人像2</button>
     <button data-img="exp3.jpg">人像3</button>
     <button data-img="video">实时</button>
   </div>
+  <div id="loading"></div>
 </body>
 </html>

@@ -1,0 +1,8 @@
+version: '3'
+services:
+  mobile:
+    image: face-trial:latest
+    ports:
+      - "8000:8989"
+    volumes:
+      - "./:/dist"
