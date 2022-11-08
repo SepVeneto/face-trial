@@ -1,23 +1,24 @@
-import * as tf from '@tensorflow/tfjs-core'
 import * as faceapi from 'face-api.js'
-import * as fs from 'node:fs'
 const minConfidence = 0.5
 
 const faceDetectionOption = new faceapi.SsdMobilenetv1Options({ minConfidence })
 const faceDetectionNet = faceapi.nets.ssdMobilenetv1
 
 export async function run() {
-  await faceDetectionNet.load('./weights')
+  const canvas = getCanvas()
+  await faceDetectionNet.loadFromDisk('./weights')
+  await faceapi.nets.faceLandmark68Net.loadFromDisk('./weights')
 
-  // const img = await 
-  const reader = fs.createReadStream('./imgs/4.jpg')
-  const res = fs.readFileSync('./imgs/4.jpg')
+  const img = await canvas.loadImage('./imgs/4.jpg')
+  const results = await faceapi.detectAllFaces(img, faceDetectionOption).withFaceLandmarks()
 
-  const detections = await faceapi.detectAllFaces(typedArray)
+  console.log(results)
+  return results
 }
 
-function loadImage(url: string) {
-  return new Promise(resolve => {
-    const img = new Image()
-  })
+function getCanvas() {
+  const canvas = require('canvas')
+  const { Canvas, Image, ImageData } = canvas
+  faceapi.env.monkeyPatch({ Canvas, Image, ImageData })
+  return canvas
 }

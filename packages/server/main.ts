@@ -4,6 +4,7 @@ import logger from 'koa-logger'
 import koaBody from 'koa-body'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import { run } from './faceDetection'
 
 const app = new Koa()
 const router = new Router()
@@ -21,6 +22,7 @@ router.post('/face/detection', async (ctx, next) => {
   const reader = fs.createReadStream(_file.filepath)
   const stream = fs.createWriteStream(path.resolve(__dirname, 'imgs', _file.originalFilename))
   reader.pipe(stream)
+  await run()
   console.log('uploading %s -> %s', _file.originalFilename, stream.path)
 
   ctx.response.body = 'success'
