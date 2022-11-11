@@ -20,12 +20,13 @@ router.post('/face/detection', async (ctx, next) => {
   }
   const _file = Array.isArray(file) ? file[0] : file
   const reader = fs.createReadStream(_file.filepath)
-  const stream = fs.createWriteStream(path.resolve(__dirname, 'imgs', _file.originalFilename))
-  reader.pipe(stream)
-  await run()
-  console.log('uploading %s -> %s', _file.originalFilename, stream.path)
+  // const stream = fs.createWriteStream(path.resolve(__dirname, 'imgs', _file.originalFilename))
+  // reader.pipe(stream)
+  const buffers = await streamToBuffer(reader)
+  const res = await run(buffers)
+  // console.log('uploading %s -> %s', _file.originalFilename, stream.path)
 
-  ctx.response.body = 'success'
+  ctx.response.body = JSON.stringify(res)
 })
 
 app.use(router.routes())
@@ -42,3 +43,12 @@ app.use(async (ctx, next) => {
 
 app.listen(9000)
 console.log('listen 9000...')
+
+function streamToBuffer(stream: fs.ReadStream) {
+  const buff = []
+  return new Promise<Buffer>((resolve, reject) => {
+    stream.on('error', reject)
+    stream.on('data', (data) => buff.push(data))
+    stream.on('end', () => resolve(Buffer.concat(buff)))
+  })
+}
