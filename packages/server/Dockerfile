@@ -1,12 +1,15 @@
 FROM node:18.12.0
 
-VOLUME [ "/data" ]
+COPY . /data
 
-RUN apt-get update \
-    && apt-get install -y build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev \
-    && cd /data \
-    && npm config set registry https://registry.npm.taobao.org \
-    && npm i -g pnpm \
-    && pnpm i
+WORKDIR /data
 
-CMD [ "pnpm dev" ]
+RUN sed -i "s@http://\(deb\|security\).debian.org@https://mirrors.aliyun.com@g" /etc/apt/sources.list && \
+    apt-get update && \
+    apt-get install -y build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev && \
+    npm config set registry https://registry.npm.taobao.org && \
+    npm i -g pnpm && \
+    pnpm i && \
+    pnpm i @tensorflow/tfjs-node @vladmandic/face-api
+
+CMD [ "pnpm", "dev" ]

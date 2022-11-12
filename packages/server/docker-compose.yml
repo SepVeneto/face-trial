@@ -4,6 +4,4 @@ services:
     build: .
     image: server_node-image
     ports:
-      - "8080:8000"
-    volumes:
-      - .:/data
+      - "9898:9000"
