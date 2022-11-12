@@ -1,7 +1,7 @@
 // import faceMock from './faceMock.js'
 import glassMock from './glassMock.js'
-import { faceStream, init as initFace } from './face.js'
-window.onPlay = faceStream
+import { init as initFace } from './face.js'
+// window.onPlay = faceStream
 let loading = false
 const MAGIC_HEIGHT = 0.12
 class Scene {
